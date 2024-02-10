@@ -48,18 +48,19 @@ export class SprintManager {
 		this.sessionDuration = plugin.settings.sessionDuration * 60 * 1000;
 		switch (plugin.settings.speed) {
 			case "slow":
-				this.healthDecay = 0.02;
+				this.healthDecay = 0.01;
 				break;
 			case "medium":
-				this.healthDecay = 0.04;
+				this.healthDecay = 0.03;
 				break;
 			case "fast":
-				this.healthDecay = 0.06;
+				this.healthDecay = 0.05;
 				break;
 			case "very-fast":
 				this.healthDecay = 0.15;
 				break;
 		}
+		this.healthDecay = plugin.settings.healthDecay;
 		this.setup();
 		this.readSprintLog();
 		this.startWordCount = this.getCurrentWordCount(view);

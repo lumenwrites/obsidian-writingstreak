@@ -4,12 +4,14 @@ import { FolderSuggest } from "./suggesters/FolderSuggester";
 
 export interface WritingStreakSettings {
 	sessionDuration: number;
+	healthDecay: number;
 	speed: "slow" | "medium" | "fast" | "very-fast";
 	folderPath: string;
 }
 
 export const DEFAULT_SETTINGS: WritingStreakSettings = {
 	sessionDuration: 5,
+	healthDecay: 0.035,
 	speed: "medium",
 	folderPath: "_assets/data",
 };
@@ -42,6 +44,22 @@ export class WritingStreakSettingTab extends PluginSettingTab {
 						);
 					}
 					this.plugin.settings.sessionDuration = updatedDuration;
+					this.plugin.saveSettings();
+				})
+		);
+		// Health decay
+		new Setting(containerEl).setName("Health decay").addText((text) =>
+			text
+				.setPlaceholder("Enter decay rate")
+				.setValue(this.plugin.settings.healthDecay.toString())
+				.onChange(async (value) => {
+					const updatedDecay = parseFloat(value) || 0.035;
+					if (!updatedDecay) {
+						return new Notice(
+							`Error: value '${value}' is not a valid decay rate.`
+						);
+					}
+					this.plugin.settings.healthDecay = updatedDecay;
 					this.plugin.saveSettings();
 				})
 		);
