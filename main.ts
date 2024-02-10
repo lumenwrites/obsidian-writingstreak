@@ -31,6 +31,7 @@ export default class WritingStreakPlugin extends Plugin {
 		this.addCommand({
 			id: "sprint",
 			name: `Sprint`,
+			icon: "play-circle",
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				this.scheduler.startSprint({ view, plugin: this });
 			},
@@ -39,6 +40,7 @@ export default class WritingStreakPlugin extends Plugin {
 		this.addCommand({
 			id: "stop-sprint",
 			name: `Stop sprint`,
+			icon: 'stop-circle',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				this.scheduler.cleanup();
 			},
