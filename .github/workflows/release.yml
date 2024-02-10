@@ -26,21 +26,21 @@ jobs:
           npm install
           npm run build
 
-      # Determine new tag or use a default
-      - name: Determine new tag
-        id: new_tag
+      # Extract version from manifest.json
+      - name: Extract version
+        id: extract_version
         run: |
-          tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")  # Default tag if none exist
-          echo "New tag: $tag"
-          echo "::set-output name=tag::$tag"
+          version=$(jq -r '.version' manifest.json)
+          echo "Extracted version: $version"
+          echo "::set-output name=version::$version"
 
       # Create and Publish GitHub Release
       - name: Create and Publish Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag=${{ steps.new_tag.outputs.tag }}
-          gh release create "$tag" \
-            --title "Release $tag" \
+          version=${{ steps.extract_version.outputs.version }}
+          gh release create "$version" \
+            --title "Release $version" \
             --notes "Description of the release" \
             main.js manifest.json styles.css
