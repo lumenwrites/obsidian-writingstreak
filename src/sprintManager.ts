@@ -23,7 +23,7 @@ const TICK_LENGTH = 10;
 const DEFAULT_HEALTH = 105.0;
 const HEALTH_GAIN = 1.0;
 
-export class Scheduler {
+export class SprintManager {
 	view: MarkdownView;
 	plugin: WritingStreakPlugin;
 
@@ -171,7 +171,7 @@ export class Scheduler {
 
 		let newEntry = `- **Start:** ${currentTime}, **Duration:** ${duration} min, **Wordcount:** ${wordsWritten} words, **Success:** ${success}, **Doc:** [${documentTitle}](${documentPath})\n`;
 
-		const folderPath = "_assets/data";
+		const folderPath = this.plugin.settings.folderPath;
 		const fileName = "writingstreak.md";
 		let file = this.plugin.app.vault.getAbstractFileByPath(
 			`${folderPath}/${fileName}`
@@ -193,7 +193,7 @@ export class Scheduler {
 	}
 
 	async readSprintLog() {
-		const folderPath = "_assets/data";
+		const folderPath = this.plugin.settings.folderPath;
 		const fileName = "writingstreak.md";
 		const file = this.plugin.app.vault.getAbstractFileByPath(
 			`${folderPath}/${fileName}`

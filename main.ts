@@ -11,7 +11,7 @@ import {
 	Setting,
 	TFile,
 } from "obsidian";
-import { Scheduler } from "src/scheduler";
+import { SprintManager } from "src/sprintManager";
 import {
 	WritingStreakSettings,
 	WritingStreakSettingTab,
@@ -20,20 +20,20 @@ import {
 
 export default class WritingStreakPlugin extends Plugin {
 	settings: WritingStreakSettings;
-	scheduler: Scheduler;
+	sprintManager: SprintManager;
 
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new WritingStreakSettingTab(this.app, this));
 
-		this.scheduler = new Scheduler();
+		this.sprintManager = new SprintManager();
 
 		this.addCommand({
 			id: "sprint",
 			name: `Sprint`,
 			icon: "play-circle",
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				this.scheduler.startSprint({ view, plugin: this });
+				this.sprintManager.startSprint({ view, plugin: this });
 			},
 		});
 
@@ -42,13 +42,13 @@ export default class WritingStreakPlugin extends Plugin {
 			name: `Stop sprint`,
 			icon: 'stop-circle',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				this.scheduler.cleanup();
+				this.sprintManager.cleanup();
 			},
 		});
 	}
 
 	onunload() {
-		this.scheduler.cleanup();
+		this.sprintManager.cleanup();
 	}
 
 	async loadSettings() {

@@ -1,14 +1,17 @@
 import { PluginSettingTab, App, Setting, Notice } from "obsidian";
 import WritingStreakPlugin from "main";
+import { FolderSuggest } from "./suggesters/FolderSuggester";
 
 export interface WritingStreakSettings {
 	sessionDuration: number;
 	speed: "slow" | "medium" | "fast" | "very-fast";
+	folderPath: string;
 }
 
 export const DEFAULT_SETTINGS: WritingStreakSettings = {
 	sessionDuration: 5,
 	speed: "medium",
+	folderPath: "_assets/data",
 };
 
 export class WritingStreakSettingTab extends PluginSettingTab {
@@ -57,5 +60,21 @@ export class WritingStreakSettingTab extends PluginSettingTab {
 						this.plugin.saveSettings();
 					})
 			);
+		// Folder selection setting
+		new Setting(containerEl)
+			.setName("Save Folder")
+			.setDesc("Choose a folder where to save your writing stats")
+			.addSearch((cb) => {
+				new FolderSuggest(cb.inputEl);
+				cb.setPlaceholder("Example: folder1/folder2")
+					.setValue(this.plugin.settings.folderPath)
+					.onChange((new_folder) => {
+						this.plugin.settings.folderPath = new_folder;
+						console.log("Set folder path", new_folder);
+						this.plugin.saveSettings();
+					});
+				// @ts-ignore
+				cb.containerEl.addClass("templater_search");
+			});
 	}
 }
