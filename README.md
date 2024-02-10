@@ -7,4 +7,4 @@ This Obsidian plugin gamifies the writing process, helps you develop a daily wri
 - Keep writing and don't run out of health until the sprint is over.
 - Successful sprints are recorded in your sprint log.
 
-![](https://github.com/lumenwrites/obsidian-writingstreak/blob/docs/screenshot.png)
+![](https://raw.githubusercontent.com/lumenwrites/obsidian-writingstreak/main/docs/screenshot.png)
