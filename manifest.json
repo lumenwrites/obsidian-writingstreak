@@ -1,7 +1,7 @@
 {
 	"id": "writing-streak",
 	"name": "Writing Streak",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"minAppVersion": "0.15.0",
 	"description": "Develop a daily writing habit and write in the flow.",
 	"author": "lumenwrites",
