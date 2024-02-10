@@ -1,35 +1,47 @@
 name: Release Obsidian Plugin
 
 on:
-    push:
-        branches:
-            - main # or any other branch you use for releases
+  push:
+    branches:
+      - main  # Trigger the workflow on push to main branch
 
 jobs:
-    build-and-release:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-              with:
-                  fetch-depth: 0 # Fetches all history for tags and branches
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetches all history for tags and branches
 
-            - name: Set up Node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: "18.x"
+      # Setup Node.js
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
 
-            - name: Build plugin
-              run: |
-                  npm install
-                  npm run build
+      # Build the plugin
+      - name: Build plugin
+        run: |
+          npm install
+          npm run build
 
-            - name: Determine new tag
-              run: |
-                  tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-                  # Increment the tag or handle as needed here
+      # Determine new tag or use a default
+      - name: Determine new tag
+        id: new_tag
+        run: |
+          tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")  # Default tag if none exist
+          echo "New tag: $tag"
+          echo "::set-output name=tag::$tag"
 
-            - name: Create release
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  # Use the determined tag to create a release
+      # Create GitHub Release
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=${{ steps.new_tag.outputs.tag }}
+          gh release create "$tag" \
+            --title "Release $tag" \
+            --notes "Description of the release" \
+            --draft \
+            main.js manifest.json styles.css
