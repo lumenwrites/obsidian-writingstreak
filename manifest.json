@@ -1,11 +1,11 @@
 {
 	"id": "writing-streak",
 	"name": "Writing Streak",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
+	"description": "Develop a daily writing habit and write in the flow.",
+	"author": "lumenwrites",
+	"authorUrl": "https://lumenwrites.dev",
 	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": false
 }

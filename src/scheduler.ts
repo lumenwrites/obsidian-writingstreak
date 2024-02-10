@@ -8,6 +8,7 @@ import {
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	TFile,
 } from "obsidian";
 import { StateField } from "@codemirror/state";
 import { setupDivs, updateProgressBar, removeDivs, updateText } from "src/dom";
@@ -52,6 +53,7 @@ export class Scheduler {
 				break;
 		}
 		this.setup();
+
 		this.timerId = window.setInterval(this.onTick.bind(this), TICK_LENGTH);
 	}
 
@@ -76,9 +78,12 @@ export class Scheduler {
 		// Update progressbars
 		const timeProgress = (this.timeLeft / this.sessionDuration) * 100;
 		updateProgressBar("timebar-progress", timeProgress);
-    const secondsLeft = Math.floor(this.timeLeft / 1000)
-    const minutesLeft = Math.floor(secondsLeft / 60)
-    updateText("timebar-text", `${minutesLeft}:${secondsLeft - minutesLeft * 60}`)
+		const secondsLeft = Math.floor(this.timeLeft / 1000);
+		const minutesLeft = Math.floor(secondsLeft / 60);
+		updateText(
+			"timebar-text",
+			`${minutesLeft}:${secondsLeft - minutesLeft * 60}`
+		);
 		const healthProgress = (this.currentHealth / 100) * 100;
 		updateProgressBar("healthbar-progress", healthProgress);
 	}
@@ -89,11 +94,13 @@ export class Scheduler {
 
 	succeed() {
 		new Notice("Success!");
+		this.saveData("success");
 		this.cleanup();
 	}
 
 	fail() {
 		new Notice("Fail!");
+		this.saveData("fail");
 		this.cleanup();
 	}
 
@@ -126,5 +133,44 @@ export class Scheduler {
 		cmExtensions.push(onInputKeypress);
 		this.plugin.registerEditorExtension(cmExtensions);
 		console.log("Registered CodeMirror hook");
+	}
+	async saveData(msg: string) {
+		let data = ""; // Replace this with the data you want to save
+		const folderPath = "_assets/data"; // Replace this with the path to the folder
+		const fileName = "writingstreak.md"; // Replace this with the name of the file
+		// Add a line at the end of the file in the following format: 2021-01-01 12:00:00 - sessionDuration min
+		const date = new Date().toISOString().split("T")[0];
+		const time = new Date().toISOString().split("T")[1].split(".")[0];
+		data = `${date} ${time} ${this.plugin.settings.sessionDuration} min - ${msg}`;
+		// Create the file if it doesn't exist
+		let file = this.plugin.app.vault.getAbstractFileByPath(
+			`${folderPath}/${fileName}`
+		) as TFile;
+		if (!file) {
+			file = await this.plugin.app.vault.create(
+				`${folderPath}/${fileName}`,
+				data
+			);
+		} else {
+			// If the file already exists, append the data to it
+			const currentContent = await this.plugin.app.vault.read(file);
+			const newContent = currentContent + "\n" + data;
+			await this.plugin.app.vault.modify(file, newContent);
+		}
+	}
+	async readData() {
+		const folderPath = "_assets/data"; // Replace this with the path to the folder
+		const fileName = "writingstreak.md"; // Replace this with the name of the file
+		// Get the file
+		const file = this.plugin.app.vault.getAbstractFileByPath(
+			`${folderPath}/${fileName}`
+		) as TFile;
+		if (file) {
+			// If the file exists, read the data from it
+			const content = await this.plugin.app.vault.read(file);
+			console.log(content); // Replace this with what you want to do with the content
+		} else {
+			console.log("File does not exist"); // Replace this with what you want to do if the file does not exist
+		}
 	}
 }

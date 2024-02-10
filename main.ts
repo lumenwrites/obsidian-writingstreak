@@ -9,6 +9,7 @@ import {
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	TFile,
 } from "obsidian";
 import { Scheduler } from "src/scheduler";
 import {

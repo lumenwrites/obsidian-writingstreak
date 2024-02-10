@@ -2,12 +2,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { View } from "obsidian";
 
+
 export function setupDivs(view: View) {
-	const tabContainer = (view as ExtendedView).leaf.parent.tabsContainerEl;
+	const root = (view as ExtendedView).leaf.parent.tabsContainerEl;
 	// Set this element as the progress bar's containing block.
-	tabContainer.style.position = "relative";
+	root.style.position = "relative";
 	// Bars container
-	const container = createDiv("sprint-bars-container", tabContainer);
+	const container = createDiv("sprint-bars-container", root);
 	// Healthbar
 	const healthbar = createDiv("healthbar", container);
 	const healthbarProgress = createDiv("healthbar-progress", healthbar);
