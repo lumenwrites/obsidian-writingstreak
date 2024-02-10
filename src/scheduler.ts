@@ -34,6 +34,9 @@ export class Scheduler {
 	timeLeft: number;
 	currentHealth: number;
 	timerId: number | undefined;
+	// Stats
+	sprints: Record<string, Array<Record<string, string>>> = {};
+	successfulSprints = 0;
 
 	constructor() {}
 
@@ -52,10 +55,11 @@ export class Scheduler {
 				this.healthDecay = 0.06;
 				break;
 			case "very-fast":
-				this.healthDecay = 1.08;
+				this.healthDecay = 0.15;
 				break;
 		}
 		this.setup();
+		this.readSprintLog();
 
 		this.timerId = window.setInterval(this.onTick.bind(this), TICK_LENGTH);
 	}
@@ -72,23 +76,24 @@ export class Scheduler {
 			return;
 		}
 
-		// Decrease time left, decay health
-		this.timeLeft -= TICK_LENGTH;
+		// Decay health, update time
 		this.currentHealth -= this.healthDecay;
+		this.timeLeft -= TICK_LENGTH;
 		// Clamp just in case
-		this.timeLeft = Math.clamp(this.timeLeft, 0, this.sessionDuration);
 		this.currentHealth = Math.clamp(this.currentHealth, 0, DEFAULT_HEALTH);
+		this.timeLeft = Math.clamp(this.timeLeft, 0, this.sessionDuration);
+		// Update healthbar
+		const healthProgress = (this.currentHealth / 100) * 100;
+		updateProgressBar("healthbar-progress", healthProgress);
 		// Update progressbars
 		const timeProgress = (this.timeLeft / this.sessionDuration) * 100;
 		updateProgressBar("timebar-progress", timeProgress);
-		const secondsLeft = Math.floor(this.timeLeft / 1000);
-		const minutesLeft = Math.floor(secondsLeft / 60);
+		// Update text
+		const todaysDate = new Date().toISOString().split("T")[0];
 		updateText(
 			"timebar-text",
-			`${minutesLeft}:${secondsLeft - minutesLeft * 60}`
+			`[${this.successfulSprints}] ${formatTime(this.timeLeft)}`
 		);
-		const healthProgress = (this.currentHealth / 100) * 100;
-		updateProgressBar("healthbar-progress", healthProgress);
 	}
 
 	onKeyPress() {
@@ -138,29 +143,42 @@ export class Scheduler {
 		console.log("Registered CodeMirror hook");
 	}
 	async saveData(msg: string) {
-		let data = ""; // Replace this with the data you want to save
-		const folderPath = "_assets/data"; // Replace this with the path to the folder
-		const fileName = "writingstreak.md"; // Replace this with the name of the file
-		// Add a line at the end of the file in the following format: 2021-01-01 12:00:00 - sessionDuration min
-		const date = new Date().toISOString().split("T")[0];
-		const time = new Date().toISOString().split("T")[1].split(".")[0];
-		data = `${date} ${time} ${this.plugin.settings.sessionDuration} min - ${msg}`;
-		// Create the file if it doesn't exist
+		const currentDate = new Date().toISOString().split("T")[0];
+		const currentTime = new Date()
+			.toISOString()
+			.split("T")[1]
+			.split(".")[0];
+		const duration = this.plugin.settings.sessionDuration; // Assuming this is in minutes
+		const outcome = msg; // 'Success' or 'Fail'
+
+		// Get the currently opened document's title and path
+		const currentFile = this.plugin.app.workspace.getActiveFile();
+		const documentTitle = currentFile?.basename; // The title is usually the basename of the file
+		const documentPath = currentFile?.path;
+
+		let newEntry = `- **${currentTime}** ${duration} min - ${outcome} - [${documentTitle}](${documentPath})\n`;
+
+		const folderPath = "_assets/data";
+		const fileName = "writingstreak.md";
 		let file = this.plugin.app.vault.getAbstractFileByPath(
 			`${folderPath}/${fileName}`
 		) as TFile;
+
 		if (!file) {
 			file = await this.plugin.app.vault.create(
 				`${folderPath}/${fileName}`,
-				data
+				`# Writing Sprint Log\n\n## ${currentDate}\n${newEntry}`
 			);
 		} else {
-			// If the file already exists, append the data to it
-			const currentContent = await this.plugin.app.vault.read(file);
-			const newContent = currentContent + "\n" + data;
-			await this.plugin.app.vault.modify(file, newContent);
+			let content = await this.plugin.app.vault.read(file);
+			if (!content.includes(`## ${currentDate}`)) {
+				content += `\n## ${currentDate}\n`;
+			}
+			content += newEntry;
+			await this.plugin.app.vault.modify(file, content);
 		}
 	}
+
 	async readData() {
 		const folderPath = "_assets/data"; // Replace this with the path to the folder
 		const fileName = "writingstreak.md"; // Replace this with the name of the file
@@ -176,4 +194,71 @@ export class Scheduler {
 			console.log("File does not exist"); // Replace this with what you want to do if the file does not exist
 		}
 	}
+	async readSprintLog() {
+		const folderPath = "_assets/data";
+		const fileName = "writingstreak.md";
+		const file = this.plugin.app.vault.getAbstractFileByPath(
+			`${folderPath}/${fileName}`
+		) as TFile;
+
+		if (!file) {
+			console.log("File does not exist");
+			return {}; // Return an empty object if the file doesn't exist
+		}
+
+		const content = await this.plugin.app.vault.read(file);
+		const lines = content.split("\n"); // Split the file content into lines
+
+		let jsonData = {};
+		let currentDate = "";
+
+		lines.forEach((line) => {
+			if (line.startsWith("## ")) {
+				// Check if the line is a date header
+				currentDate = line.substring(3); // Remove '## ' to get the date
+				jsonData[currentDate] = []; // Initialize an empty array for this date
+			} else if (line.startsWith("- **")) {
+				// Check if the line is a sprint entry
+				const entryParts = line.match(
+					/\*\*(.*?)\*\* (.*?) min - (.*?) - \[(.*?)\]\((.*?)\)/
+				);
+				if (entryParts && entryParts.length >= 6) {
+					const time = entryParts[1];
+					const duration = entryParts[2];
+					const outcome = entryParts[3];
+					const documentTitle = entryParts[4];
+					const documentPath = entryParts[5];
+
+					const sprintEntry = {
+						time: time,
+						duration: duration,
+						outcome: outcome,
+						documentTitle: documentTitle,
+						documentPath: documentPath,
+					};
+
+					jsonData[currentDate].push(sprintEntry);
+				}
+			}
+		});
+
+		this.sprints = jsonData;
+		this.successfulSprints =
+			jsonData[new Date().toISOString().split("T")[0]]?.filter(
+				(sprint) => sprint.outcome === "success"
+			)?.length || 0;
+		console.log("[readSprintLog]", this.sprints);
+		return jsonData;
+	}
+}
+
+function formatTime(ms: number): string {
+	const minutes = Math.floor(ms / 60000); // 60,000 milliseconds in a minute
+	const seconds = Math.floor((ms % 60000) / 1000); // Remainder in seconds
+
+	// Format minutes and seconds to always be two digits
+	const formattedMinutes = minutes.toString().padStart(2, "0");
+	const formattedSeconds = seconds.toString().padStart(2, "0");
+
+	return `${formattedMinutes}:${formattedSeconds}`;
 }
