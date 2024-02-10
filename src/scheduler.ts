@@ -34,6 +34,8 @@ export class Scheduler {
 	timeLeft: number;
 	currentHealth: number;
 	timerId: number | undefined;
+	startWordCount: number;
+	endWordCount: number;
 	// Stats
 	sprints: Record<string, Array<Record<string, string>>> = {};
 	successfulSprints = 0;
@@ -60,10 +62,17 @@ export class Scheduler {
 		}
 		this.setup();
 		this.readSprintLog();
-
+		this.startWordCount = this.getCurrentWordCount(view);
 		this.timerId = window.setInterval(this.onTick.bind(this), TICK_LENGTH);
 	}
-
+	// Add a method to get the current word count from the active document
+	getCurrentWordCount(view: MarkdownView): number {
+		const editor = view.editor;
+		const text = editor.getValue();
+		const words = text.match(/\b[-?(\w+)?]+\b/gi);
+		const currentWordCount = words ? words.length : 0;
+		return currentWordCount;
+	}
 	onTick() {
 		const { timeLeft, currentHealth } = this;
 		if (timeLeft <= 0) {
@@ -90,9 +99,13 @@ export class Scheduler {
 		updateProgressBar("timebar-progress", timeProgress);
 		// Update text
 		const todaysDate = new Date().toISOString().split("T")[0];
+		const currentWordCount = this.getCurrentWordCount(this.view);
+		const wordsWritten = currentWordCount - this.startWordCount;
+		const successfulSprints = this.successfulSprints;
+		const timeLeftFormatted = formatTime(this.timeLeft);
 		updateText(
 			"timebar-text",
-			`[${this.successfulSprints}] ${formatTime(this.timeLeft)}`
+			`S:${successfulSprints} W:${wordsWritten} ${timeLeftFormatted}`
 		);
 	}
 
@@ -143,20 +156,20 @@ export class Scheduler {
 		console.log("Registered CodeMirror hook");
 	}
 	async saveData(msg: string) {
+		this.endWordCount = this.getCurrentWordCount(this.view);
+		const wordsWritten = this.endWordCount - this.startWordCount;
 		const currentDate = new Date().toISOString().split("T")[0];
 		const currentTime = new Date()
 			.toISOString()
 			.split("T")[1]
 			.split(".")[0];
-		const duration = this.plugin.settings.sessionDuration; // Assuming this is in minutes
-		const outcome = msg; // 'Success' or 'Fail'
-
-		// Get the currently opened document's title and path
+		const duration = this.plugin.settings.sessionDuration; // In minutes
+		const success = msg === "success"; // Determine success as a boolean
 		const currentFile = this.plugin.app.workspace.getActiveFile();
-		const documentTitle = currentFile?.basename; // The title is usually the basename of the file
+		const documentTitle = currentFile?.basename;
 		const documentPath = currentFile?.path;
 
-		let newEntry = `- **${currentTime}** ${duration} min - ${outcome} - [${documentTitle}](${documentPath})\n`;
+		let newEntry = `- **Start:** ${currentTime}, **Duration:** ${duration} min, **Wordcount:** ${wordsWritten} words, **Success:** ${success}, **Doc:** [${documentTitle}](${documentPath})\n`;
 
 		const folderPath = "_assets/data";
 		const fileName = "writingstreak.md";
@@ -179,21 +192,6 @@ export class Scheduler {
 		}
 	}
 
-	async readData() {
-		const folderPath = "_assets/data"; // Replace this with the path to the folder
-		const fileName = "writingstreak.md"; // Replace this with the name of the file
-		// Get the file
-		const file = this.plugin.app.vault.getAbstractFileByPath(
-			`${folderPath}/${fileName}`
-		) as TFile;
-		if (file) {
-			// If the file exists, read the data from it
-			const content = await this.plugin.app.vault.read(file);
-			console.log(content); // Replace this with what you want to do with the content
-		} else {
-			console.log("File does not exist"); // Replace this with what you want to do if the file does not exist
-		}
-	}
 	async readSprintLog() {
 		const folderPath = "_assets/data";
 		const fileName = "writingstreak.md";
@@ -217,22 +215,24 @@ export class Scheduler {
 				// Check if the line is a date header
 				currentDate = line.substring(3); // Remove '## ' to get the date
 				jsonData[currentDate] = []; // Initialize an empty array for this date
-			} else if (line.startsWith("- **")) {
+			} else if (line.startsWith("- **Start:**")) {
 				// Check if the line is a sprint entry
 				const entryParts = line.match(
-					/\*\*(.*?)\*\* (.*?) min - (.*?) - \[(.*?)\]\((.*?)\)/
+					/- \*\*Start:\*\* (.*?), \*\*Duration:\*\* (.*?) min, \*\*Wordcount:\*\* (.*?) words, \*\*Success:\*\* (.*?), \*\*Doc:\*\* \[(.*?)\]\((.*?)\)/
 				);
-				if (entryParts && entryParts.length >= 6) {
-					const time = entryParts[1];
+				if (entryParts && entryParts.length >= 7) {
+					const start = entryParts[1];
 					const duration = entryParts[2];
-					const outcome = entryParts[3];
-					const documentTitle = entryParts[4];
-					const documentPath = entryParts[5];
+					const wordcount = entryParts[3];
+					const success = entryParts[4] === "true";
+					const documentTitle = entryParts[5];
+					const documentPath = entryParts[6];
 
 					const sprintEntry = {
-						time: time,
-						duration: duration,
-						outcome: outcome,
+						start: start,
+						duration: parseInt(duration),
+						wordcount: parseInt(wordcount),
+						success: success,
 						documentTitle: documentTitle,
 						documentPath: documentPath,
 					};
@@ -241,12 +241,10 @@ export class Scheduler {
 				}
 			}
 		});
-
 		this.sprints = jsonData;
-		this.successfulSprints =
-			jsonData[new Date().toISOString().split("T")[0]]?.filter(
-				(sprint) => sprint.outcome === "success"
-			)?.length || 0;
+		const todaysSprints =
+			jsonData[new Date().toISOString().split("T")[0]] || [];
+		this.successfulSprints = todaysSprints.filter((s) => s.success)?.length;
 		console.log("[readSprintLog]", this.sprints);
 		return jsonData;
 	}
