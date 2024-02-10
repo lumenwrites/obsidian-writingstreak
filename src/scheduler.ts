@@ -51,6 +51,9 @@ export class Scheduler {
 			case "fast":
 				this.healthDecay = 0.06;
 				break;
+			case "very-fast":
+				this.healthDecay = 1.08;
+				break;
 		}
 		this.setup();
 

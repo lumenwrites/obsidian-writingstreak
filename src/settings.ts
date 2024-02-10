@@ -3,7 +3,7 @@ import WritingStreakPlugin from "main";
 
 export interface WritingStreakSettings {
 	sessionDuration: number;
-	speed: "slow" | "medium" | "fast";
+	speed: "slow" | "medium" | "fast" | "very-fast";
 }
 
 export const DEFAULT_SETTINGS: WritingStreakSettings = {
@@ -49,6 +49,7 @@ export class WritingStreakSettingTab extends PluginSettingTab {
 					.addOption("slow", "Slow")
 					.addOption("medium", "Medium")
 					.addOption("fast", "Fast")
+					.addOption("very-fast", "Very Fast")
 					.setValue(this.plugin.settings.speed)
 					.onChange(async (value: "slow" | "medium" | "fast") => {
 						console.log("Set speed to:", value);
