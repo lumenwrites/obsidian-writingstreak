@@ -34,8 +34,8 @@ jobs:
           echo "New tag: $tag"
           echo "::set-output name=tag::$tag"
 
-      # Create GitHub Release
-      - name: Create Release
+      # Create and Publish GitHub Release
+      - name: Create and Publish Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -43,5 +43,4 @@ jobs:
           gh release create "$tag" \
             --title "Release $tag" \
             --notes "Description of the release" \
-            --draft \
             main.js manifest.json styles.css
