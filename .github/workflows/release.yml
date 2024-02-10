@@ -1,21 +1,38 @@
-name: Release Obsidian plugin
+name: Release Obsidian Plugin
 
 on:
   push:
-    tags:
-      - "*"
+    branches:
+      - main  # or any other branch you use for releases
 
 jobs:
-  build:
+  auto-tag:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetches all history for tags and branches
 
+      - name: Bump version and push tag
+        uses: mathieudutour/github-tag-action@v5.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch  # Can be 'major', 'minor', or 'patch'
+          # Optional: if you use a custom version file, release branch, etc.
+          # custom_version_file: 'path/to/version_file'
+          # release_branches: 'main'
+          # create_annotated_tag: true  # To create an annotated tag
+
+  build-and-release:
+    needs: auto-tag
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18.x"
+          node-version: '18.x'
 
       - name: Build plugin
         run: |
@@ -26,7 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag="${GITHUB_REF#refs/tags/}"
+          tag=$(git describe --tags --abbrev=0)  # Get the latest tag
 
           gh release create "$tag" \
             --title="$tag" \
