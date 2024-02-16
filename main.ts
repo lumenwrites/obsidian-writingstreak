@@ -18,6 +18,10 @@ import {
 	DEFAULT_SETTINGS,
 } from "src/settings";
 
+
+
+import { StateField } from "@codemirror/state";
+
 export default class WritingStreakPlugin extends Plugin {
 	settings: WritingStreakSettings;
 	sprintManager: SprintManager;
@@ -27,7 +31,7 @@ export default class WritingStreakPlugin extends Plugin {
 		this.addSettingTab(new WritingStreakSettingTab(this.app, this));
 
 		this.sprintManager = new SprintManager();
-
+		this.setupCodeMirror()
 		this.addCommand({
 			id: "sprint",
 			name: `Sprint`,
@@ -45,6 +49,27 @@ export default class WritingStreakPlugin extends Plugin {
 				this.sprintManager.cleanup();
 			},
 		});
+	}
+
+	setupCodeMirror() {
+		// Codemirror magic that runs function on keypress
+		const cmExtensions: Array<StateField<unknown>> = [];
+		const onInputKeypress = StateField.define({
+			create: () => null,
+			update: (_, transaction) => {
+				if (!transaction.docChanged) {
+					return null;
+				}
+				if (transaction.isUserEvent("input")) {
+					console.log('keypress')
+					this.sprintManager.onKeyPress();
+				}
+				return null;
+			},
+		});
+		cmExtensions.push(onInputKeypress);
+		this.registerEditorExtension(cmExtensions);
+		console.log("Registered CodeMirror hook");
 	}
 
 	onunload() {

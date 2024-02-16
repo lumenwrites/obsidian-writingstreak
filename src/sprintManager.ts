@@ -111,6 +111,7 @@ export class SprintManager {
 	}
 
 	onKeyPress() {
+		// console.log('Gain health', this.currentHealth)
 		this.currentHealth += HEALTH_GAIN;
 	}
 
@@ -129,7 +130,7 @@ export class SprintManager {
 	setup() {
 		this.cleanup();
 		setupDivs(this.view);
-		this.setupCodeMirror();
+		// this.setupCodeMirror();
 	}
 	cleanup() {
 		this.timeLeft = this.sessionDuration;
@@ -137,25 +138,7 @@ export class SprintManager {
 		removeDivs();
 		clearInterval(this.timerId);
 	}
-	setupCodeMirror() {
-		// Codemirror magic that runs function on keypress
-		const cmExtensions: Array<StateField<unknown>> = [];
-		const onInputKeypress = StateField.define({
-			create: () => null,
-			update: (_, transaction) => {
-				if (!transaction.docChanged) {
-					return null;
-				}
-				if (transaction.isUserEvent("input")) {
-					this.onKeyPress();
-				}
-				return null;
-			},
-		});
-		cmExtensions.push(onInputKeypress);
-		this.plugin.registerEditorExtension(cmExtensions);
-		console.log("Registered CodeMirror hook");
-	}
+
 	async saveData(msg: string) {
 		this.endWordCount = this.getCurrentWordCount(this.view);
 		const wordsWritten = this.endWordCount - this.startWordCount;
