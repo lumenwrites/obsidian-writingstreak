@@ -99,7 +99,6 @@ export class SprintManager {
 		const timeProgress = (this.timeLeft / this.sessionDuration) * 100;
 		updateProgressBar("timebar-progress", timeProgress);
 		// Update text
-		const todaysDate = new Date().toISOString().split("T")[0];
 		const currentWordCount = this.getCurrentWordCount(this.view);
 		const wordsWritten = currentWordCount - this.startWordCount;
 		const successfulSprints = this.successfulSprints;
@@ -142,18 +141,24 @@ export class SprintManager {
 	async saveData(msg: string) {
 		this.endWordCount = this.getCurrentWordCount(this.view);
 		const wordsWritten = this.endWordCount - this.startWordCount;
-		const currentDate = new Date().toISOString().split("T")[0];
-		const currentTime = new Date()
-			.toISOString()
-			.split("T")[1]
-			.split(".")[0];
+		// const currentDate = new Date().toISOString().split("T")[0];
+		// const currentTime = new Date()
+		// 	.toISOString()
+		// 	.split("T")[1]
+		// 	.split(".")[0];
+		const { currentDate, currentTime } = getTimeAndDate();
 		const duration = this.plugin.settings.sessionDuration; // In minutes
+
+		const timeElapsed = this.sessionDuration - this.timeLeft;
+		const startTime = new Date(Date.now() - timeElapsed);
+		const startTimeFormatted = `${startTime.getHours()}:${startTime.getMinutes()}`;
+
 		const success = msg === "success"; // Determine success as a boolean
 		const currentFile = this.plugin.app.workspace.getActiveFile();
 		const documentTitle = currentFile?.basename;
 		const documentPath = currentFile?.path;
 
-		let newEntry = `- **Start:** ${currentTime}, **Duration:** ${duration} min, **Wordcount:** ${wordsWritten} words, **Success:** ${success}, **Doc:** [${documentTitle}](${documentPath})\n`;
+		let newEntry = `- **Start:** ${startTimeFormatted}, **Duration:** ${duration} min, **Wordcount:** ${wordsWritten} words, **Success:** ${success}, **Doc:** [${documentTitle}](${documentPath})\n`;
 
 		const folderPath = this.plugin.settings.folderPath;
 		const fileName = "writingstreak.md";
@@ -226,8 +231,8 @@ export class SprintManager {
 			}
 		});
 		this.sprints = jsonData;
-		const todaysSprints =
-			jsonData[new Date().toISOString().split("T")[0]] || [];
+		const { currentDate: todaysDate } = getTimeAndDate();
+		const todaysSprints = jsonData[todaysDate] || [];
 		this.successfulSprints = todaysSprints.filter((s) => s.success)?.length;
 		console.log("[readSprintLog]", this.sprints);
 		return jsonData;
@@ -243,4 +248,16 @@ function formatTime(ms: number): string {
 	const formattedSeconds = seconds.toString().padStart(2, "0");
 
 	return `${formattedMinutes}:${formattedSeconds}`;
+}
+
+function getTimeAndDate() {
+	const now = new Date();
+	const currentDate = `${now.getFullYear()}-${(now.getMonth() + 1)
+		.toString()
+		.padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}`;
+	const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
+		.getMinutes()
+		.toString()
+		.padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+	return { currentDate, currentTime };
 }
